@@ -8,6 +8,8 @@ import { createAuthGuard } from "./shared/auth";
 import { csrfTokenHandler, createCsrfProtection } from "./shared/csrf";
 import type { ModuleDescriptor } from "./shared/module";
 import { createAuthModule } from "./modules/auth";
+import { createJobsModule } from "./modules/jobs";
+import { createOrganizationsModule } from "./modules/organizations";
 
 export interface CreateAppOptions {
   pool?: Pool;
@@ -37,7 +39,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   app.get("/api/csrf-token", csrfTokenHandler);
 
-  const modules: ModuleDescriptor[] = [createAuthModule(db)];
+  const modules: ModuleDescriptor[] = [
+    createAuthModule(db),
+    createJobsModule(db),
+    createOrganizationsModule(db),
+  ];
 
   const publicRoutes = new Set<string>();
   for (const m of modules) {
