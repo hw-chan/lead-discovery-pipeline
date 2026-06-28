@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import pool from "./db";
+import pool from "./shared/db";
 import { getSeedAdminPassword } from "./seedConfig";
 
 const SEED_ORGS = [

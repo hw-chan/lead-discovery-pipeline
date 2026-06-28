@@ -5,6 +5,7 @@ dist-ssr/
 # OpenSpec / Superpowers
 openspec/
 .opencode/
+docs/superpowers/
 
 .env
 .env.local

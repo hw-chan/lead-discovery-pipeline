@@ -1,14 +1,23 @@
-import { useState } from 'react'
+import { AuthProvider } from './features/auth/AuthContext'
+import { useAuth } from './features/auth/useAuth'
+import { LoginForm } from './features/auth/LoginForm'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+function AuthenticatedApp() {
+  const { user, logout } = useAuth()
 
   return (
     <>
+      <header>
+        <span>{user?.email}</span>
+        <button type="button" onClick={logout}>
+          Sign out
+        </button>
+      </header>
+
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
@@ -16,18 +25,11 @@ function App() {
           <img src={viteLogo} className="vite" alt="Vite logo" />
         </div>
         <div>
-          <h1>Get started</h1>
+          <h1>Signed in</h1>
           <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+            Organization: <code>{user?.orgId}</code>
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
       </section>
 
       <div className="ticks"></div>
@@ -119,4 +121,18 @@ function App() {
   )
 }
 
-export default App
+function AppContent() {
+  const { user, loading } = useAuth()
+
+  if (loading) return <div>Loading…</div>
+  if (!user) return <LoginForm />
+  return <AuthenticatedApp />
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  )
+}

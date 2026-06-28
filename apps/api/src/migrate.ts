@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Client } from "pg";
-import pool from "./db";
+import pool from "./shared/db";
 
 function parseDbName(): string {
   try {

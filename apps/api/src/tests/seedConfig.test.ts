@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getSeedAdminPassword } from "./seedConfig";
+import { getSeedAdminPassword } from "../seedConfig";
 
 test("getSeedAdminPassword fails when the seed password is missing", () => {
   const previous = process.env.SEED_ADMIN_PASSWORD;
