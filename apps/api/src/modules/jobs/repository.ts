@@ -86,3 +86,109 @@ export async function findLeadsByJobId(
   );
   return result.rows;
 }
+
+export interface InsertLeadInput {
+  id: string;
+  job_id: string;
+  org_id: string;
+  name: string | null;
+  company: string | null;
+  title: string | null;
+  email: string | null;
+  source_url: string | null;
+  status: string;
+}
+
+export async function claimNextJob(
+  client: PoolClient,
+): Promise<JobRow | null> {
+  const result = await client.query<JobRow>(
+    `SELECT
+       id,
+       org_id,
+       user_id,
+       status,
+       criteria,
+       error,
+       created_at,
+       updated_at
+     FROM jobs
+     WHERE status IN ('queued', 'discovering', 'verifying')
+     ORDER BY created_at ASC
+     LIMIT 1
+     FOR UPDATE SKIP LOCKED`,
+  );
+  return (result.rows[0] as JobRow | undefined) ?? null;
+}
+
+export async function updateJobStatus(
+  client: PoolClient,
+  jobId: string,
+  status: string,
+  error?: string | null,
+): Promise<void> {
+  await client.query(
+    "UPDATE jobs SET status = $1, error = $2, updated_at = now() WHERE id = $3",
+    [status, error ?? null, jobId],
+  );
+}
+
+export async function insertLead(
+  client: PoolClient,
+  lead: InsertLeadInput,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO leads
+       (id, job_id, org_id, name, company, title, email, source_url, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     ON CONFLICT (job_id, email) DO NOTHING`,
+    [
+      lead.id,
+      lead.job_id,
+      lead.org_id,
+      lead.name,
+      lead.company,
+      lead.title,
+      lead.email,
+      lead.source_url,
+      lead.status,
+    ],
+  );
+}
+
+export async function getDiscoveredLeadsByJobId(
+  client: PoolClient,
+  jobId: string,
+): Promise<LeadRow[]> {
+  const result = await client.query<LeadRow>(
+    `SELECT
+       id,
+       job_id,
+       org_id,
+       name,
+       company,
+       title,
+       email,
+       source_url,
+       status,
+       rejection_reason,
+       score
+     FROM leads
+     WHERE job_id = $1 AND status = 'discovered'`,
+    [jobId],
+  );
+  return result.rows;
+}
+
+export async function updateLeadStatus(
+  client: PoolClient,
+  leadId: string,
+  status: string,
+  score?: number | null,
+  rejectionReason?: string | null,
+): Promise<void> {
+  await client.query(
+    "UPDATE leads SET status = $1, score = $2, rejection_reason = $3 WHERE id = $4",
+    [status, score ?? null, rejectionReason ?? null, leadId],
+  );
+}
