@@ -61,4 +61,3 @@ The worker includes a small configurable demo delay after persisting `discoverin
 - Add a dedicated paginated inbox endpoint.
 - Add cancellation API/UI behavior.
 - Add structured JSON logs and provider timing metrics.
-- Add idempotency keys if the product requirement becomes "same search click can only create one job" rather than "credits cannot be overspent".
