@@ -68,6 +68,26 @@ export async function login(
   return { status: res.status, cookies: extractCookies(res), body };
 }
 
+export async function register(
+  baseUrl: string,
+  email: string,
+  password: string,
+  confirmPassword: string,
+  session: SessionData,
+): Promise<{ status: number; cookies: string; body: unknown }> {
+  const res = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": session.csrfToken,
+      cookie: session.cookies,
+    },
+    body: JSON.stringify({ email, password, confirmPassword }),
+  });
+  const body = await res.json();
+  return { status: res.status, cookies: extractCookies(res), body };
+}
+
 type QueryHandler =
   | QueryResult<Record<string, unknown>>
   | ((text: string, params?: unknown[]) => QueryResult<Record<string, unknown>>);

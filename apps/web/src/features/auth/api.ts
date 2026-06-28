@@ -28,6 +28,23 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   return (await res.json()) as AuthUser
 }
 
+export async function register(
+  email: string,
+  password: string,
+  confirmPassword: string,
+): Promise<AuthUser> {
+  const res = await request('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, confirmPassword }),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? 'Registration failed')
+  }
+  return (await res.json()) as AuthUser
+}
+
 export async function logout(): Promise<void> {
   await request('/api/auth/logout', {
     method: 'POST',

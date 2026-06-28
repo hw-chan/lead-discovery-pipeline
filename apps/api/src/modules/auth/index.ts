@@ -6,6 +6,6 @@ export function createAuthModule(db: Pool): ModuleDescriptor {
   return {
     name: "auth",
     router: createAuthRouter(db),
-    publicRoutes: ["POST /api/auth/login"],
+    publicRoutes: ["POST /api/auth/login", "POST /api/auth/register"],
   };
 }

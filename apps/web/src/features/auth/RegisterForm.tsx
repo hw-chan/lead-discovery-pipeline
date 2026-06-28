@@ -16,21 +16,22 @@ import EmailIcon from '@mui/icons-material/Email'
 import LockIcon from '@mui/icons-material/Lock'
 import { useAuth } from './useAuth'
 
-export interface LoginFormProps {
-  onSwitchToRegister: () => void
+export interface RegisterFormProps {
+  onSwitchToLogin: () => void
 }
 
-export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
-  const { login, error } = useAuth()
+export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
+  const { register, error } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await login(email, password)
+      await register(email, password, confirmPassword)
     } catch {
       // error is set in context
     } finally {
@@ -67,7 +68,7 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             LeadFlow
           </Typography>
           <Typography color="text.secondary">
-            Sign in to discover verified leads
+            Create an account to get started
           </Typography>
         </Box>
 
@@ -101,6 +102,25 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
               fullWidth
+              helperText="At least 8 characters with a letter and a number"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+
+            <TextField
+              label="Confirm Password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              fullWidth
               slotProps={{
                 input: {
                   startAdornment: (
@@ -120,15 +140,15 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
               startIcon={submitting ? <CircularProgress size={18} /> : null}
               fullWidth
             >
-              {submitting ? 'Signing in…' : 'Sign in'}
+              {submitting ? 'Creating account…' : 'Create account'}
             </Button>
           </CardContent>
         </Card>
 
         <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mt: 3, textAlign: 'center' }}>
-          Don&apos;t have an account?{' '}
-          <Link component="button" type="button" onClick={onSwitchToRegister} underline="hover">
-            Create one
+          Already have an account?{' '}
+          <Link component="button" type="button" onClick={onSwitchToLogin} underline="hover">
+            Sign in
           </Link>
         </Typography>
       </Container>

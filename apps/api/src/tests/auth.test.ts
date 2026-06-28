@@ -5,6 +5,11 @@ import bcrypt from "bcrypt";
 import session from "express-session";
 import type { Express, Request, Response } from "express";
 import { createApp } from "../server";
+import {
+  createMockPool as createHelpersMockPool,
+  register as apiRegister,
+  normalizeQueryKey,
+} from "./helpers";
 
 interface MockUser {
   id: string;
@@ -379,6 +384,170 @@ test("/health remains unauthenticated", async () => {
   try {
     const res = await fetch(`${baseUrl}/health`);
     assert.equal(res.status, 200);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+const LOGIN_SQL = "SELECT id, email, password_hash, org_id FROM users WHERE email = $1";
+const INSERT_ORG_SQL = "INSERT INTO organizations (id, name, credits) VALUES ($1, $2, $3)";
+const INSERT_USER_SQL =
+  "INSERT INTO users (id, email, password_hash, org_id) VALUES ($1, $2, $3, $4) RETURNING id, email, password_hash, org_id";
+
+function createRegistrationPool(existingUser?: { id: string; email: string; org_id: string }) {
+  const loginRows = existingUser
+    ? [
+        {
+          id: existingUser.id,
+          email: existingUser.email,
+          password_hash: "existing-hash",
+          org_id: existingUser.org_id,
+        },
+      ]
+    : [];
+
+  return createHelpersMockPool(
+    {
+      [normalizeQueryKey(LOGIN_SQL)]: { rows: loginRows } as unknown as import("pg").QueryResult<
+        Record<string, unknown>
+      >,
+    },
+    {
+      queries: {
+        [normalizeQueryKey(INSERT_ORG_SQL)]: {
+          rows: [],
+          rowCount: 1,
+        } as unknown as import("pg").QueryResult<Record<string, unknown>>,
+        [normalizeQueryKey(INSERT_USER_SQL)]: {
+          rows: [
+            {
+              id: "new-user-id",
+              email: "new@igo.com",
+              password_hash: "hashed-password",
+              org_id: "new-org-id",
+            },
+          ],
+          rowCount: 1,
+        } as unknown as import("pg").QueryResult<Record<string, unknown>>,
+      },
+    },
+  );
+}
+
+test("registration succeeds with valid credentials", async () => {
+  const pool = createRegistrationPool();
+  const store = new session.MemoryStore();
+  const app = createApp({
+    pool: pool as unknown as import("pg").Pool,
+    sessionStore: store,
+    sessionSecret: "test-secret",
+  });
+  const { server, baseUrl } = await startServer(app);
+
+  try {
+    const sessionData = await initSession(baseUrl);
+    const result = await apiRegister(baseUrl, "new@igo.com", "Password1", "Password1", sessionData);
+    assert.equal(result.status, 201);
+    const body = result.body as Record<string, string>;
+    assert.equal(body.email, "new@igo.com");
+    assert.equal(body.orgId, "new-org-id");
+    assert.equal(body.userId, "new-user-id");
+    assert.ok(result.cookies.includes("lead.sid="));
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test("registration fails with duplicate email", async () => {
+  const pool = createRegistrationPool({ id: "u1", email: "new@igo.com", org_id: "o1" });
+  const store = new session.MemoryStore();
+  const app = createApp({
+    pool: pool as unknown as import("pg").Pool,
+    sessionStore: store,
+    sessionSecret: "test-secret",
+  });
+  const { server, baseUrl } = await startServer(app);
+
+  try {
+    const sessionData = await initSession(baseUrl);
+    const result = await apiRegister(baseUrl, "new@igo.com", "Password1", "Password1", sessionData);
+    assert.equal(result.status, 409);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test("registration fails with invalid email", async () => {
+  const pool = createRegistrationPool();
+  const store = new session.MemoryStore();
+  const app = createApp({
+    pool: pool as unknown as import("pg").Pool,
+    sessionStore: store,
+    sessionSecret: "test-secret",
+  });
+  const { server, baseUrl } = await startServer(app);
+
+  try {
+    const sessionData = await initSession(baseUrl);
+    const result = await apiRegister(baseUrl, "not-an-email", "Password1", "Password1", sessionData);
+    assert.equal(result.status, 400);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test("registration fails with weak password", async () => {
+  const pool = createRegistrationPool();
+  const store = new session.MemoryStore();
+  const app = createApp({
+    pool: pool as unknown as import("pg").Pool,
+    sessionStore: store,
+    sessionSecret: "test-secret",
+  });
+  const { server, baseUrl } = await startServer(app);
+
+  try {
+    const sessionData = await initSession(baseUrl);
+    const result = await apiRegister(baseUrl, "new@igo.com", "short1", "short1", sessionData);
+    assert.equal(result.status, 400);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test("registration fails when passwords do not match", async () => {
+  const pool = createRegistrationPool();
+  const store = new session.MemoryStore();
+  const app = createApp({
+    pool: pool as unknown as import("pg").Pool,
+    sessionStore: store,
+    sessionSecret: "test-secret",
+  });
+  const { server, baseUrl } = await startServer(app);
+
+  try {
+    const sessionData = await initSession(baseUrl);
+    const result = await apiRegister(baseUrl, "new@igo.com", "Password1", "Password2", sessionData);
+    assert.equal(result.status, 400);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test("registration fails with missing fields", async () => {
+  const pool = createRegistrationPool();
+  const store = new session.MemoryStore();
+  const app = createApp({
+    pool: pool as unknown as import("pg").Pool,
+    sessionStore: store,
+    sessionSecret: "test-secret",
+  });
+  const { server, baseUrl } = await startServer(app);
+
+  try {
+    const sessionData = await initSession(baseUrl);
+    const result = await apiRegister(baseUrl, "", "", "", sessionData);
+    assert.equal(result.status, 400);
   } finally {
     await stopServer(server);
   }

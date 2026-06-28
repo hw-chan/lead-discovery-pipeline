@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { AuthProvider } from './features/auth/AuthContext'
 import { useAuth } from './features/auth/useAuth'
 import { LoginForm } from './features/auth/LoginForm'
+import { RegisterForm } from './features/auth/RegisterForm'
 import { Layout } from './components/Layout'
 import { SearchForm } from './features/jobs/SearchForm'
 import { JobProgressView } from './features/jobs/JobProgressView'
@@ -12,9 +14,16 @@ import { theme } from './theme'
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const [showRegister, setShowRegister] = useState(false)
 
   if (loading) return null
-  if (!user) return <LoginForm />
+  if (!user) {
+    return showRegister ? (
+      <RegisterForm onSwitchToLogin={() => setShowRegister(false)} />
+    ) : (
+      <LoginForm onSwitchToRegister={() => setShowRegister(true)} />
+    )
+  }
   return <>{children}</>
 }
 

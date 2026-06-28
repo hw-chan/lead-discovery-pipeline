@@ -1,9 +1,9 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import type { Pool } from "pg";
-import { authenticateUser } from "./service";
+import { authenticateUser, registerUser } from "./service";
 import { validate } from "../../shared/validate";
-import { loginSchema } from "./schemas";
+import { loginSchema, registerSchema } from "./schemas";
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -38,6 +38,31 @@ export function createAuthRouter(db: Pool): Router {
       });
     } catch {
       return res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  router.post("/register", validate(registerSchema), async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+      const payload = await registerUser(db, email, password);
+
+      req.session.regenerate((err) => {
+        if (err) {
+          return res.status(500).json({ error: "Registration failed" });
+        }
+
+        req.session.userId = payload.userId;
+        req.session.orgId = payload.orgId;
+        req.session.email = payload.email;
+
+        return res.status(201).json(payload);
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "DuplicateEmailError") {
+        return res.status(409).json({ error: "Email already registered" });
+      }
+      return res.status(500).json({ error: "Registration failed" });
     }
   });
 
