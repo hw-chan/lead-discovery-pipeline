@@ -33,7 +33,6 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     try {
       await register(email, password, confirmPassword)
     } catch {
-      // error is set in context
     } finally {
       setSubmitting(false)
     }

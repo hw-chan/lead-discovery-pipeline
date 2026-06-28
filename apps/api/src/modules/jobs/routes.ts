@@ -61,17 +61,13 @@ export function createJobsRouter(db: Pool): Router {
     }
 
     try {
-      const job = await findJobById(db, req.params.id);
+      const job = await findJobById(db, req.params.id, orgId);
 
       if (!job) {
         return res.status(404).json({ error: "Job not found" });
       }
 
-      if (job.org_id !== orgId) {
-        return res.status(403).json({ error: "Forbidden" });
-      }
-
-      const leads = await findLeadsByJobId(db, job.id);
+      const leads = await findLeadsByJobId(db, job.id, orgId);
       return res.json({ job, leads });
     } catch {
       return res.status(500).json({ error: "Failed to get job" });

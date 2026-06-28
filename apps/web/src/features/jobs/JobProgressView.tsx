@@ -91,7 +91,7 @@ export function JobProgressView() {
     }
   }, [id, polling])
 
-  const discovered = data?.leads.filter((l) => l.status === 'discovered').length ?? 0
+  const unverifiedRaw = data?.leads.filter((l) => l.status === 'unverified_raw').length ?? 0
   const verified = data?.leads.filter((l) => l.status === 'verified').length ?? 0
   const rejected = data?.leads.filter((l) => l.status === 'rejected').length ?? 0
 
@@ -193,10 +193,10 @@ export function JobProgressView() {
                   <Card variant="outlined" sx={{ bgcolor: 'info.light', border: 'none' }}>
                     <CardContent>
                       <Typography color="info.dark" variant="overline">
-                        Discovered
+                        Unverified Raw
                       </Typography>
                       <Typography variant="h3" sx={{ fontWeight: 800, color: 'info.dark' }}>
-                        {discovered}
+                        {unverifiedRaw}
                       </Typography>
                     </CardContent>
                   </Card>

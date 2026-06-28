@@ -15,7 +15,7 @@ import type {
 import type { JobRow } from "./modules/jobs/types";
 import {
   claimNextJob,
-  getDiscoveredLeadsByJobId,
+  getUnverifiedRawLeadsByJobId,
   insertLead,
   updateJobStatus,
   updateLeadStatus,
@@ -26,6 +26,8 @@ export interface WorkerOptions {
   discoverProvider: DiscoverProvider;
   verifyProvider: VerifyProvider;
   pollIntervalMs?: number;
+  stageDelayMs?: number;
+  delay?: (ms: number) => Promise<void>;
 }
 
 export interface Worker {
@@ -34,6 +36,30 @@ export interface Worker {
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
+const DEFAULT_STAGE_DELAY_MS = 2500;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseStageDelayMs(): number {
+  const configuredDelay = process.env.WORKER_STAGE_DELAY_MS;
+  if (configuredDelay === undefined) return DEFAULT_STAGE_DELAY_MS;
+
+  const parsedDelay = Number(configuredDelay);
+  if (!Number.isFinite(parsedDelay) || parsedDelay < 0) {
+    return DEFAULT_STAGE_DELAY_MS;
+  }
+
+  return parsedDelay;
+}
+
+async function waitForVisibleStage(options: WorkerOptions): Promise<void> {
+  const stageDelayMs = options.stageDelayMs ?? 0;
+  if (stageDelayMs <= 0) return;
+
+  await (options.delay ?? sleep)(stageDelayMs);
+}
 
 function buildSearchRequest(job: JobRow): SearchRequest {
   const criteria = job.criteria ?? {};
@@ -89,7 +115,7 @@ async function insertCandidates(
       title: candidate.title,
       email: candidate.email,
       source_url: candidate.source_url ?? null,
-      status: "discovered",
+      status: "unverified_raw",
     });
   }
 }
@@ -98,9 +124,8 @@ async function runDiscoverStage(
   options: WorkerOptions,
   job: JobRow,
 ): Promise<void> {
-  // Persist the discovering status before doing I/O so a crash resumes here
-  // and idempotent inserts prevent duplicate leads.
   await setJobStatus(options.pool, job.id, "discovering");
+  await waitForVisibleStage(options);
 
   const request = buildSearchRequest(job);
   const candidates = await options.discoverProvider.discover(request);
@@ -109,6 +134,8 @@ async function runDiscoverStage(
     await insertCandidates(client, job, candidates);
     await updateJobStatus(client, job.id, "verifying");
   });
+
+  await waitForVisibleStage(options);
 }
 
 async function runVerifyStage(
@@ -116,7 +143,7 @@ async function runVerifyStage(
   job: JobRow,
 ): Promise<void> {
   await withTransaction(options.pool, async (client) => {
-    const leads = await getDiscoveredLeadsByJobId(client, job.id);
+    const leads = await getUnverifiedRawLeadsByJobId(client, job.id, job.org_id);
 
     for (const lead of leads) {
       const result = await options.verifyProvider.verify(lead);
@@ -124,6 +151,8 @@ async function runVerifyStage(
         await updateLeadStatus(
           client,
           lead.id,
+          job.id,
+          job.org_id,
           "verified",
           result.score ?? null,
           null,
@@ -132,6 +161,8 @@ async function runVerifyStage(
         await updateLeadStatus(
           client,
           lead.id,
+          job.id,
+          job.org_id,
           "rejected",
           null,
           result.reason ?? null,
@@ -216,6 +247,7 @@ export function createDefaultWorker(): Worker {
     discoverProvider: createMockDiscoverProvider(),
     verifyProvider: createMockVerifyProvider(),
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
+    stageDelayMs: parseStageDelayMs(),
   });
 }
 

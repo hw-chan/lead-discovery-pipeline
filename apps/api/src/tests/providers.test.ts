@@ -23,8 +23,8 @@ test("MockDiscoverProvider returns deterministic output for the same jobId", asy
   assert.deepEqual(first, second);
 });
 
-test("MockDiscoverProvider returns between 0 and 10 candidates", async () => {
-  for (let i = 0; i < 20; i++) {
+test("MockDiscoverProvider returns between 0 and 50 candidates", async () => {
+  for (let i = 0; i < 60; i++) {
     const request = {
       jobId: `job-${i}`,
       companies: ["Globex"],
@@ -32,7 +32,7 @@ test("MockDiscoverProvider returns between 0 and 10 candidates", async () => {
       region: "US",
     };
     const candidates = await discoverProvider.discover(request);
-    assert.ok(candidates.length >= 0 && candidates.length <= 10);
+    assert.ok(candidates.length >= 0 && candidates.length <= 50);
   }
 });
 
@@ -51,6 +51,45 @@ test("MockDiscoverProvider returns at least three Marriott contacts", async () =
     (c) => c.company?.toLowerCase() === "marriott",
   );
   assert.ok(marriottContacts.length >= 3);
+});
+
+test("MockDiscoverProvider always includes a junk email for the Marriott demo", async () => {
+  const request = {
+    jobId: "marriott-demo-job",
+    companies: ["Marriott"],
+    roles: ["Director of Sales"],
+    region: "Malaysia",
+  };
+
+  const candidates = await discoverProvider.discover(request);
+  const junkEmails = candidates.filter(
+    (c) =>
+      c.email?.startsWith("info@") || c.email?.startsWith("noreply@"),
+  );
+  assert.ok(junkEmails.length >= 1);
+});
+
+test("MockDiscoverProvider includes requested Marriott sales matches", async () => {
+  const request = {
+    jobId: "marriott-demo-job",
+    companies: ["Marriott"],
+    roles: ["Director of Sales"],
+    region: "Malaysia",
+  };
+
+  const candidates = await discoverProvider.discover(request);
+  const matches = candidates.filter(
+    (c) =>
+      c.company?.toLowerCase().includes("marriott") &&
+      c.title?.toLowerCase().includes("director of sales"),
+  );
+  const companyCount = new Set(candidates.map((c) => c.company)).size;
+  const titleCount = new Set(candidates.map((c) => c.title)).size;
+
+  assert.ok(matches.length >= 1);
+  assert.ok(companyCount >= 2);
+  assert.ok(titleCount >= 3);
+  assert.ok(candidates.length >= 3 && candidates.length <= 50);
 });
 
 test("MockVerifyProvider rejects info@ emails", async () => {

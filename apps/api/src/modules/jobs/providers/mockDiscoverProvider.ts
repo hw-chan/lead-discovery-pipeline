@@ -73,6 +73,20 @@ const MARRIOTT_CONTACTS: CandidateLead[] = [
     email: "drew.pinto@marriott.com",
     source_url: "https://www.marriott.com/leadership",
   },
+  {
+    name: "Siti Rahman",
+    company: "Marriott Malaysia",
+    title: "Director of Sales",
+    email: "siti.rahman@marriott.com",
+    source_url: "https://www.marriott.com.my/sales",
+  },
+  {
+    name: "Marriott Reservations",
+    company: "Marriott",
+    title: "Reservations Desk",
+    email: "info@marriott.com",
+    source_url: "https://www.marriott.com/contact",
+  },
 ];
 
 function hashJobId(jobId: string): number {
@@ -121,7 +135,7 @@ export class MockDiscoverProvider implements DiscoverProvider {
       (c) => c.toLowerCase() === "marriott",
     );
 
-    const targetCount = isMarriott ? Math.max(seed % 11, 3) : seed % 11;
+    const targetCount = isMarriott ? Math.max(seed % 51, 4) : seed % 51;
 
     const candidates: CandidateLead[] = [];
 

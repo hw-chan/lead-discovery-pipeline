@@ -6,12 +6,15 @@
     "apps/web"
   ],
   "scripts": {
-    "dev": "npm run dev -w apps/api",
+    "dev": "concurrently \"npm run dev -w apps/api\" \"npm run dev -w apps/web\" --names api,web --prefix-colors auto",
     "build": "npm run build -w apps/api && npm run build -w apps/web",
     "lint": "npm run lint -w apps/web",
     "test": "npm test -w apps/api",
     "migrate": "npm run migrate -w apps/api",
     "seed": "npm run seed -w apps/api",
     "worker": "npm run worker -w apps/api"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

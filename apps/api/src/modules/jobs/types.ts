@@ -24,7 +24,7 @@ export interface LeadRow {
 }
 
 export interface JobListItem extends JobRow {
-  discovered_count: number;
+  unverified_raw_count: number;
   verified_count: number;
   rejected_count: number;
 }

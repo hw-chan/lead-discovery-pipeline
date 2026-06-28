@@ -52,11 +52,11 @@ export async function findJobsByOrg(
        j.error,
        j.created_at,
        j.updated_at,
-       COUNT(l.id) FILTER (WHERE l.status = 'discovered') AS discovered_count,
-       COUNT(l.id) FILTER (WHERE l.status = 'verified') AS verified_count,
-       COUNT(l.id) FILTER (WHERE l.status = 'rejected') AS rejected_count
+       COUNT(l.id) FILTER (WHERE l.status = 'unverified_raw')::int AS unverified_raw_count,
+       COUNT(l.id) FILTER (WHERE l.status = 'verified')::int AS verified_count,
+       COUNT(l.id) FILTER (WHERE l.status = 'rejected')::int AS rejected_count
      FROM jobs j
-     LEFT JOIN leads l ON l.job_id = j.id
+     LEFT JOIN leads l ON l.job_id = j.id AND l.org_id = j.org_id
      WHERE j.org_id = $1
      GROUP BY j.id
      ORDER BY j.created_at DESC`,
@@ -68,10 +68,11 @@ export async function findJobsByOrg(
 export async function findJobById(
   db: Pool,
   jobId: string,
+  orgId: string,
 ): Promise<JobRow | null> {
   const result = await db.query<JobRow>(
-    "SELECT id, org_id, user_id, status, criteria, error, created_at, updated_at FROM jobs WHERE id = $1",
-    [jobId],
+    "SELECT id, org_id, user_id, status, criteria, error, created_at, updated_at FROM jobs WHERE id = $1 AND org_id = $2",
+    [jobId, orgId],
   );
   return (result.rows[0] as JobRow | undefined) ?? null;
 }
@@ -79,10 +80,11 @@ export async function findJobById(
 export async function findLeadsByJobId(
   db: Pool,
   jobId: string,
+  orgId: string,
 ): Promise<LeadRow[]> {
   const result = await db.query<LeadRow>(
-    "SELECT id, job_id, org_id, name, company, title, email, source_url, status, rejection_reason, score FROM leads WHERE job_id = $1",
-    [jobId],
+    "SELECT id, job_id, org_id, name, company, title, email, source_url, status, rejection_reason, score FROM leads WHERE job_id = $1 AND org_id = $2",
+    [jobId, orgId],
   );
   return result.rows;
 }
@@ -103,20 +105,51 @@ export async function claimNextJob(
   client: PoolClient,
 ): Promise<JobRow | null> {
   const result = await client.query<JobRow>(
-    `SELECT
-       id,
-       org_id,
-       user_id,
-       status,
-       criteria,
-       error,
-       created_at,
-       updated_at
-     FROM jobs
-     WHERE status IN ('queued', 'discovering', 'verifying')
-     ORDER BY created_at ASC
-     LIMIT 1
-     FOR UPDATE SKIP LOCKED`,
+    `WITH next_job AS (
+       SELECT id, status
+       FROM jobs
+       WHERE status = 'queued'
+          OR (
+            status IN ('discovering', 'verifying')
+            AND updated_at < now() - interval '30 minutes'
+          )
+       ORDER BY created_at ASC
+       LIMIT 1
+       FOR UPDATE SKIP LOCKED
+     ), claimed_queued_job AS (
+       UPDATE jobs
+       SET status = 'discovering', updated_at = now()
+       FROM next_job
+       WHERE jobs.id = next_job.id AND next_job.status = 'queued'
+       RETURNING
+         jobs.id,
+         jobs.org_id,
+         jobs.user_id,
+         jobs.status,
+         jobs.criteria,
+         jobs.error,
+         jobs.created_at,
+         jobs.updated_at
+     ), claimed_stale_job AS (
+       UPDATE jobs
+       SET updated_at = now()
+       FROM next_job
+       WHERE jobs.id = next_job.id
+         AND next_job.status IN ('discovering', 'verifying')
+       RETURNING
+         jobs.id,
+         jobs.org_id,
+         jobs.user_id,
+         jobs.status,
+         jobs.criteria,
+         jobs.error,
+         jobs.created_at,
+         jobs.updated_at
+     )
+     SELECT * FROM claimed_queued_job
+     UNION ALL
+     SELECT * FROM claimed_stale_job
+     LIMIT 1`,
   );
   return (result.rows[0] as JobRow | undefined) ?? null;
 }
@@ -156,9 +189,10 @@ export async function insertLead(
   );
 }
 
-export async function getDiscoveredLeadsByJobId(
+export async function getUnverifiedRawLeadsByJobId(
   client: PoolClient,
   jobId: string,
+  orgId: string,
 ): Promise<LeadRow[]> {
   const result = await client.query<LeadRow>(
     `SELECT
@@ -174,8 +208,8 @@ export async function getDiscoveredLeadsByJobId(
        rejection_reason,
        score
      FROM leads
-     WHERE job_id = $1 AND status = 'discovered'`,
-    [jobId],
+      WHERE job_id = $1 AND org_id = $2 AND status = 'unverified_raw'`,
+    [jobId, orgId],
   );
   return result.rows;
 }
@@ -183,12 +217,14 @@ export async function getDiscoveredLeadsByJobId(
 export async function updateLeadStatus(
   client: PoolClient,
   leadId: string,
+  jobId: string,
+  orgId: string,
   status: string,
   score?: number | null,
   rejectionReason?: string | null,
 ): Promise<void> {
   await client.query(
-    "UPDATE leads SET status = $1, score = $2, rejection_reason = $3 WHERE id = $4",
-    [status, score ?? null, rejectionReason ?? null, leadId],
+    "UPDATE leads SET status = $1, score = $2, rejection_reason = $3 WHERE id = $4 AND job_id = $5 AND org_id = $6",
+    [status, score ?? null, rejectionReason ?? null, leadId, jobId, orgId],
   );
 }
