@@ -1,5 +1,11 @@
 # Decisions
 
+## Modular Monolith Architecture
+
+The backend is built as a modular monolith. The API and worker live in one deployable package (`apps/api`), but each business domain is isolated under `src/modules/` with its own routes, repository, types, and schemas.
+
+This keeps the system simple to run and deploy while still giving each module a clear boundary. If a domain such as jobs, organizations, or auth needs to become a separate service later, the split is already well-defined.
+
 ## Async Jobs Instead Of Synchronous Search
 
 `POST /api/jobs` only creates work. It does not run discovery or verification inline. This keeps the HTTP path fast, makes failures observable through job status, and leaves room for real provider latency, retries, and rate limits.
@@ -10,12 +16,6 @@ The worker owns the pipeline:
 2. Run discovery and persist `unverified_raw` leads.
 3. Run verification in a separate stage.
 4. Mark the job `completed` or `failed`.
-
-## Modular Monolith Architecture
-
-The backend is built as a modular monolith. The API and worker live in one deployable package (`apps/api`), but each business domain is isolated under `src/modules/` with its own routes, repository, types, and schemas.
-
-This keeps the system simple to run and deploy while still giving each module a clear boundary. If a domain such as jobs, organizations, or auth needs to become a separate service later, the split is already well-defined.
 
 ## Job Statuses
 
