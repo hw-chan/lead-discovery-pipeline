@@ -9,4 +9,7 @@ export default defineConfig({
       '/api': 'http://localhost:3001',
     },
   },
+  optimizeDeps: {
+    include: ['@mui/material', '@mui/icons-material'],
+  },
 })

@@ -22,9 +22,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u)
       clearCsrfToken()
       await fetchCsrfToken()
-    } catch {
-      setError('Invalid email or password')
-      throw new Error('Login failed')
+    } catch (err) {
+      setError((err as Error).message ?? 'Invalid email or password')
+      throw err
     }
   }, [])
 

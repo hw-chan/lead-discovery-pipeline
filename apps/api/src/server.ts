@@ -52,7 +52,10 @@ export function createApp(options: CreateAppOptions = {}): Express {
     }
   }
 
-  const csrfExcludedPaths = new Set<string>(["GET /api/csrf-token"]);
+  const csrfExcludedPaths = new Set<string>([
+    "GET /api/csrf-token",
+    "POST /auth/login",
+  ]);
   app.use("/api", createCsrfProtection(csrfExcludedPaths));
 
   app.use("/api", createAuthGuard(publicRoutes));
