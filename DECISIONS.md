@@ -11,6 +11,12 @@ The worker owns the pipeline:
 3. Run verification in a separate stage.
 4. Mark the job `completed` or `failed`.
 
+## Modular Monolith Architecture
+
+The backend is built as a modular monolith. The API and worker live in one deployable package (`apps/api`), but each business domain is isolated under `src/modules/` with its own routes, repository, types, and schemas.
+
+This keeps the system simple to run and deploy while still giving each module a clear boundary. If a domain such as jobs, organizations, or auth needs to become a separate service later, the split is already well-defined.
+
 ## Job Statuses
 
 The active statuses are `queued`, `discovering`, and `verifying`. Terminal statuses are `completed`, `failed`, and `cancelled`.
