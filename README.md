@@ -31,9 +31,12 @@ DATABASE_URL=postgres://postgres:your_password_here@localhost:5432/lead_discover
 SEED_ADMIN_PASSWORD=replace_with_a_real_local_password
 SESSION_SECRET=replace_with_a_random_local_secret
 WORKER_STAGE_DELAY_MS=2500
+ALLOWED_ORIGINS=http://localhost:5173
 ```
 
 `WORKER_STAGE_DELAY_MS` controls the demo pause after `discovering` and `verifying` are persisted. Use `0` to disable the pause.
+
+`ALLOWED_ORIGINS` configures CORS for the frontend. For deployed environments, set it to your frontend URL (e.g., `https://your-frontend.onrender.com`).
 
 3. Run migrations and seed demo organizations/users:
 
