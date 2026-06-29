@@ -31,8 +31,23 @@ async function ensureDatabase(dbName: string) {
   }
 }
 
+function isLocalDatabase(): boolean {
+  try {
+    const u = new URL(
+      process.env.DATABASE_URL ?? "postgres://localhost:5432/lead_discovery",
+    );
+    return u.hostname === "localhost" || u.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
 async function migrate() {
-  await ensureDatabase(parseDbName());
+  if (isLocalDatabase()) {
+    await ensureDatabase(parseDbName());
+  } else {
+    console.log("Using managed/cloud database; skipping CREATE DATABASE.");
+  }
 
   const sqlDir = path.resolve(__dirname, "migrations", "sql");
   const files = fs

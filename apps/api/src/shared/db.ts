@@ -1,9 +1,14 @@
 import "dotenv/config";
 import { Pool } from "pg";
 
+const connectionString =
+  process.env.DATABASE_URL ?? "postgres://localhost:5432/lead_discovery";
+
 const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ?? "postgres://localhost:5432/lead_discovery",
+  connectionString,
+  ssl: connectionString.includes("localhost")
+    ? false
+    : { rejectUnauthorized: false },
 });
 
 pool.on("error", (err) => {
