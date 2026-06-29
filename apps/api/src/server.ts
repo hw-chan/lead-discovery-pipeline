@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import cors from "cors";
 import type { Pool } from "pg";
 import pool from "./shared/db";
 import { createSessionMiddleware } from "./shared/session";
@@ -17,9 +18,22 @@ export interface CreateAppOptions {
   sessionSecret?: string;
 }
 
+function parseAllowedOrigins(): string[] {
+  const raw = process.env.ALLOWED_ORIGINS;
+  if (!raw || raw.trim().length === 0) {
+    return ["http://localhost:5173"];
+  }
+  return raw.split(",").map((o) => o.trim()).filter(Boolean);
+}
+
 export function createApp(options: CreateAppOptions = {}): Express {
   const db = options.pool ?? pool;
   const app = express();
+
+  app.use(cors({
+    origin: parseAllowedOrigins(),
+    credentials: true,
+  }));
 
   app.use(express.json());
 

@@ -1,7 +1,13 @@
 let csrfToken: string | null = null
 
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
+
+function apiUrl(path: string): string {
+  return `${API_BASE}${path}`
+}
+
 export async function fetchCsrfToken(): Promise<string> {
-  const res = await fetch('/api/csrf-token', { credentials: 'include' })
+  const res = await fetch(apiUrl('/api/csrf-token'), { credentials: 'include' })
   if (!res.ok) throw new Error('Failed to fetch CSRF token')
   const data = (await res.json()) as { csrfToken: string }
   csrfToken = data.csrfToken
@@ -27,7 +33,7 @@ export async function request(
   if (token && !['GET', 'HEAD', 'OPTIONS'].includes(options.method ?? 'GET')) {
     headers['X-CSRF-Token'] = token
   }
-  return fetch(url, { ...options, headers, credentials: 'include' })
+  return fetch(apiUrl(url), { ...options, headers, credentials: 'include' })
 }
 
 export async function apiGet<T>(url: string): Promise<T> {
