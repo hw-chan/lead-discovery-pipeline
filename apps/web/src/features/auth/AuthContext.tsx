@@ -18,7 +18,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchCsrfToken()
       .then(() => fetchMe())
       .then(setUser)
-      .catch(() => setError('Failed to restore session'))
+      .catch(() => {
+      })
       .finally(() => setLoading(false))
   }, [])
 
