@@ -36,8 +36,6 @@ ALLOWED_ORIGINS=http://localhost:5173
 
 `WORKER_STAGE_DELAY_MS` controls the demo pause after `discovering` and `verifying` are persisted. Use `0` to disable the pause.
 
-`ALLOWED_ORIGINS` configures CORS for the frontend. For deployed environments, set it to your frontend URL (e.g., `https://your-frontend.onrender.com`).
-
 3. Run migrations and seed demo organizations/users:
 
 ```bash
