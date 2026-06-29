@@ -6,6 +6,7 @@
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc && npm run copy-migrations",
     "copy-migrations": "node -e \"require('fs').cpSync('src/migrations/sql', 'dist/migrations/sql', { recursive: true, force: true })\"",
+    "start": "node dist/start.js",
     "test": "node --test --require ts-node/register src/tests/**/*.test.ts",
     "migrate": "ts-node src/migrate.ts",
     "seed": "ts-node src/seed.ts",
