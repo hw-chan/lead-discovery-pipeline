@@ -5,7 +5,7 @@ Async lead discovery take-home with a React inbox, Express API, Postgres storage
 ## Stack
 
 - **Frontend**: React + TypeScript, built with Vite and styled with Material UI.
-- **Backend API**: Express + TypeScript, using cookie-based sessions and CSRF protection.
+- **Backend API**: Express + TypeScript
 - **Database**: PostgreSQL for jobs, leads, users, organizations, and credits.
 - **Background worker**: A separate TypeScript process that discovers candidate leads and verifies their emails. Providers are swappable, so mock implementations can be replaced with real services later.
 - **Tests**: Node's built-in test runner, with `ts-node/register` to run TypeScript tests directly.
