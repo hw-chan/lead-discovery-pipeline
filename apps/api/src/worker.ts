@@ -254,6 +254,7 @@ export function createDefaultWorker(): Worker {
 if (require.main === module) {
   const worker = createDefaultWorker();
   worker.start();
+  console.log("Worker started and polling for jobs...");
 
   process.on("SIGINT", async () => {
     console.log("\nShutting down worker...");
