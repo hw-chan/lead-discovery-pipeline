@@ -30,6 +30,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const db = options.pool ?? pool;
   const app = express();
 
+  app.set("trust proxy", 1);
+
   app.use(cors({
     origin: parseAllowedOrigins(),
     credentials: true,

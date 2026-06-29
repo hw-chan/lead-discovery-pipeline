@@ -19,12 +19,21 @@ function resolveSessionSecret(override?: string): string {
   return DEFAULT_LOCAL_SECRET;
 }
 
+function hasNonLocalOrigin(): boolean {
+  const raw = process.env.ALLOWED_ORIGINS ?? "";
+  return raw
+    .split(",")
+    .map((o) => o.trim())
+    .some((o) => o && !o.startsWith("http://localhost") && !o.startsWith("http://127.0.0.1"));
+}
+
 export function createSessionMiddleware(
   store: session.Store,
   secretOverride?: string,
 ): RequestHandler {
   const secret = resolveSessionSecret(secretOverride);
   const isProduction = process.env.NODE_ENV === "production";
+  const crossSite = isProduction || hasNonLocalOrigin();
 
   return session({
     name: "lead.sid",
@@ -35,8 +44,8 @@ export function createSessionMiddleware(
     rolling: true,
     cookie: {
       httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      sameSite: crossSite ? "none" : "lax",
+      secure: crossSite,
       maxAge: 24 * 60 * 60 * 1000,
     },
   });
