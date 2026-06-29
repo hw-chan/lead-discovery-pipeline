@@ -2,7 +2,7 @@
 
 Async lead discovery take-home with a React inbox, Express API, Postgres storage, and a worker that runs discovery and verification outside the HTTP request path.
 
-**Live demo:** https://lead-discovery-pipeline-cxug.onrender.com
+[**Click here for live demo**](https://lead-discovery-pipeline-frontend.onrender.com)
 
 ## Stack
 
