@@ -2,6 +2,8 @@
 
 Async lead discovery take-home with a React inbox, Express API, Postgres storage, and a worker that runs discovery and verification outside the HTTP request path.
 
+**Live demo:** https://lead-discovery-pipeline-cxug.onrender.com
+
 ## Stack
 
 - **Frontend**: React + TypeScript, built with Vite and styled with Material UI.
